@@ -1,13 +1,46 @@
 <template>
   <div class="grid grid-flow-row grid-cols-1 md:grid-cols-2 gap-8">
-    <Card v-for="project in projects" :key="project.id" :project="project" />
+    <div 
+      class='drop-zone p-2 bg-gray-200 rounded-3xl pb-0' 
+      @drop='onDrop($event, 1)'
+      @dragover.prevent
+      @dragenter.prevent>
+      <div 
+        v-for='project in getList(1)' 
+        :key='project.id' 
+      >
+        <Card 
+          :project="project" 
+          draggable=true
+          @dragstart='startDrag($event, project)' 
+        />
+      </div>
+    </div>
+
+    <div 
+      class='drop-zone p-2 bg-gray-200 rounded-3xl pb-0' 
+      @drop='onDrop($event, 2)'
+      @dragover.prevent
+      @dragenter.prevent>
+      <div 
+        v-for='project in getList(2)' 
+        :key='project.id' 
+        >
+        <Card 
+          :project="project" 
+          draggable=true
+          @dragstart='startDrag($event, project)'
+        />
+      </div>
+    </div>
+    
   </div>
 </template>
 
 <script>
 import Card from './card.vue'
 import { supabase } from '../lib/supabase'
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
 
 async function getProjects() {
   try {
@@ -30,6 +63,27 @@ async function getProjects() {
   }
 }
 
+async function updateProjectList(project) {
+  try {
+    const { error } = await supabase
+      .from('projects')
+      .update({ list: project.list })
+      .eq('id', project.id)
+      .single()
+
+    if (error) {
+      alert(error.message)
+      console.error('There was an error updating', error)
+      return
+    }
+
+    console.log('Updated project', project.id)
+  } catch (err) {
+    alert('Error')
+    console.error('Unknown problem updating record', err)
+  }
+}
+
 export default defineComponent({
   name: 'Cards',
   components: {
@@ -37,16 +91,31 @@ export default defineComponent({
   },
   async setup() {
     let projects = await getProjects(); 
+    projects = ref(projects)
+
+    const getList = (list) => {
+      return projects.value.filter(project => project.list === list)
+    }
     
     return {
-      projects: projects,
+      projects,
+      getList,
+    }
+  },
+  methods: {
+    startDrag: (event, item) => {
+      event.dataTransfer.dropEffect = 'move'
+      event.dataTransfer.effectAllowed = 'move'
+      event.dataTransfer.setData('itemID', item.id)
+    },
+    onDrop(event, list) {
+      const itemID = event.dataTransfer.getData('itemID')
+      const project = this.projects.find(project => project.id == itemID)
+      project.list = list
+      updateProjectList(project)
     }
   }
 })
-
-
-// This starter template is using Vue 3 experimental <script setup> SFCs
-// Check out https://github.com/vuejs/rfcs/blob/script-setup-2/active-rfcs/0000-script-setup.md
 </script>
 
 <style>
