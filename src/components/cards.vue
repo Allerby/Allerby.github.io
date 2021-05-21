@@ -42,6 +42,20 @@ import Card from './card.vue'
 import { supabase } from '../lib/supabase'
 import { defineComponent, ref } from 'vue'
 
+function listenForAllChanges(payload) {
+  debugger;
+  console.log('payload:', payload)
+}
+
+supabase
+  .from('projects')
+  .on('UPDATE', (payload) => () => {
+    debugger;
+  })
+  .subscribe()
+
+// changeListener.unsubscribe()
+
 async function getProjects() {
   try {
     const { data: projects, error } = await supabase
